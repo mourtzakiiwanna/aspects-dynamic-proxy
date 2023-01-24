@@ -30,6 +30,7 @@ public interface Aspect {
     Runnable aroundAdviceFor(Method method);
 
     /* The Aspect builder */
+    // Like constructor
     interface Builder {
         Builder withTargets(Class<?>[] targets);
         Builder withBeforeAdviceFor(Runnable beforeAdvice, Method... methods);
