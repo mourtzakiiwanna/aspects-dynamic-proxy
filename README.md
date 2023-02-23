@@ -34,49 +34,65 @@ The message has been delivered.
 
 ## Testing Description 
 
-We will use the generated data to implement the Key-Value store.
+First of all, we have created two interfaces: Greeting and Messaging. </br>
+The implemented methods are 'greet' and 'deliverMessage' as shown below, and there are used as targets for the aspect implementation. 
 
-**KV Server** <br/> 
-First of all, we need to launch the servers using the following commands:
+**Greeting interface** <br/> 
+The return value of the 'greet' method is 'Hello..' with a parameter given from the user. 
 ```bash
-  $ python3 kvServer.py -a 127.0.0.1 -p 8000 
-  $ python3 kvServer.py -a 127.0.0.1 -p 8001 
-  $ python3 kvServer.py -a 127.0.0.1 -p 8002 
+  public class SimpleGreeting implements Greeting {
+    @Override
+    public String greet(String name) {
+        return ("Hello " + name +"!");
+    }
+  }
 ```
-where,<br/>
--a: ip_address <br/>
--p: port <br/>
 
-The above commands can run from different terminals in order to set up multiple servers simultaneously. 
-
-**KV Client** <br/> 
-After servers are launched, we can populate the database with the generated data. <br/>
-
-To launch the client, use the following command:
+**Messaging interface** <br/> 
+The return value of the 'deliverMessage' method is 'You have a message:..' with a parameter given from the user. 
 ```bash
-  $ python3 kvClient.py -s serverFile.txt -i dataToIndex.txt -k 3
+  public class SimpleMessaging implements Messaging {
+    @Override
+    public String deliverMessage(String message) {
+        return ("You have a message: " + message);
+    }
+  }
 ```
-where,<br/>
--s: file (serverFile.txt) containing a list of server IPs and ports that will be listening for queries <br/>
--i: file (dataToIndex.txt) containing data that was output from the previous part of the project <br/>
--k: replication factor, i.e. how many different servers will have the same replicated data <br/>
-
-When the indexing is finished, we can move ahead with performing queries. <br/> 
-KV Broker accepts queries from the user, as shown in the examples below: <br/>
+**Main class** <br/> 
+In the main method, we first create two aspects (one for the 'greeting' and one for the 'messaging' target) using the Aspect Builder. </br>
+We define an advice to be applied before the actual execution of the method (before advice), an advice to be applied after the actual execution (after advice), and one advice (around advice) to be applied instead of the actual execution. </br>
+The same is done for the 'messaging' aspect. 
 
 ```bash
-  $ GET key2
-  $ DELETE key3
-  $ QUERY key7.age
-  $ COMPUTE X-2 WHERE X = QUERY key7.age
-  $ COMPUTE X^2 WHERE X = QUERY key7.age
-  $ COMPUTE 2*X+3 WHERE X = QUERY key7.age
-  $ COMPUTE (X+5)*Y WHERE X = QUERY key7.age AND Y = QUERY key10.height
-  $ COMPUTE (X+Y)^(X+Y) WHERE X = QUERY key7.age AND Y = QUERY key10.height
-  $ COMPUTE 2/(X+3*(Y+Z)) WHERE X = QUERY key7.age AND Y = QUERY key10.height AND Z = QUERY key4.postal_code
-  $ COMPUTE log(2*(X+3)) WHERE x = QUERY key7.age
-  $ COMPUTE cos(X)-tan(2*Y+3) WHERE X = QUERY key7.age AND Y = QUERY key10.height
-  $ EXIT
+   Aspect greetingAspect = new DynamicProxyAspect.AspectBuilder()
+       .withTargets(new Class<?>[]{Greeting.class})
+       .withBeforeAdviceFor(() -> System.out.println("This is a greeting...."),
+            Greeting.class.getDeclaredMethod("greet", String.class))
+       .withAfterAdviceFor(() -> System.out.println("The greeting has been done."),
+            Greeting.class.getDeclaredMethod("greet", String.class))
+       .withAroundAdviceFor(() -> System.out.println("Hello " + aspectName + "! I'm an aspect! "),
+            Greeting.class.getDeclaredMethod("greet", String.class))
+       .build();
 ```
-The supported query commands are : GET, DELETE, QUERY, COMPUTE (addition, subtraction, division, multiplication, power, trigonometric/logarithmic functions for up to 3 variables which are queries). </br> </br>
-The "EXIT" command is used to exit the kvClient.
+
+Then, we create a weaver and use it to weave the 'greeting' aspect with a target object. </br>
+The same is done for the 'messaging' aspect. 
+```bash
+   DynamicProxyAspect.AspectWeaver aspectWeaverGreet = new DynamicProxyAspect.AspectWeaver(greetingAspect);
+   Greeting aspectGreet = (Greeting) aspectWeaverGreet.weave(new SimpleGreeting());
+```
+
+The next step is to call the 'greet' and 'deliverMessage' without applying aspects, in order to see their normal/original output.
+
+```bash
+   System.out.println("The normal output is: " + "\n" + "\n" + normalGreet.greet("Jo") + "\n" + 
+        normalMessage.deliverMessage("Aspect is OK...") + "\n");
+```
+
+Then, we call the methods using the aspect objects (weaving the aspects to the target objects) and the output now is based on the above advices.  
+
+```bash
+   System.out.println("The output after the aspect weaving is:" +"\n");
+   aspectGreet.greet(aspectName);
+   aspectMessaging.deliverMessage(aspectMessage);
+```
