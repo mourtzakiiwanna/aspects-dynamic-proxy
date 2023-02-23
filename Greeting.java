@@ -1,4 +1,4 @@
-// Example interface and implementation
+// example interface
 public interface Greeting {
-    public String greet(String name);
+    String greet(String name);
 }
