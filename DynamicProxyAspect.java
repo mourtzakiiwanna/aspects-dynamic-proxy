@@ -6,38 +6,48 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class DynamicProxyAspect implements Aspect {
-    private final Class<?>[] targets;
-    private final Map<Method, Runnable> beforeAdviceMap;
-    private final Map<Method, Runnable> afterAdviceMap;
-    private final Map<Method, Runnable> aroundAdviceMap;
 
+    // targets are the interfaces that this aspect will be applied upon
+    private final Class<?>[] targets;
+
+    // creates one map for every advice type that maps a Method with a Runnable
+    private final Map<Method, Runnable> beforeMap;
+    private final Map<Method, Runnable> afterMap;
+    private final Map<Method, Runnable> aroundMap;
+
+    // constructor
     public DynamicProxyAspect(Class<?>[] targets, Map<Method, Runnable> beforeAdviceMap, Map<Method, Runnable> afterAdviceMap, Map<Method, Runnable> aroundAdviceMap) {
         this.targets = targets;
-        this.beforeAdviceMap = beforeAdviceMap;
-        this.afterAdviceMap = afterAdviceMap;
-        this.aroundAdviceMap = aroundAdviceMap;
+        this.beforeMap = beforeAdviceMap;
+        this.afterMap = afterAdviceMap;
+        this.aroundMap = aroundAdviceMap;
     }
 
+    // returns the array of Classes that this aspect should be applied upon
     @Override
     public Class<?>[] getTargets() {
         return targets;
     }
 
+    // returns the Runnable, if any, that should be run as before advice for the given method
     @Override
     public Runnable beforeAdviceFor(Method method) {
-        return beforeAdviceMap.get(method);
+        return beforeMap.get(method);
     }
 
+    // returns the Runnable, if any, that should be run as after advice for the given method
     @Override
     public Runnable afterAdviceFor(Method method) {
-        return afterAdviceMap.get(method);
+        return afterMap.get(method);
     }
 
+    // returns the Runnable, if any, that should be run as around advice for the given method
     @Override
     public Runnable aroundAdviceFor(Method method) {
-        return aroundAdviceMap.get(method);
+        return aroundMap.get(method);
     }
 
+    // creates an aspect object implementing the "Builder" interface
     public static class AspectBuilder implements Builder {
 
         private Class<?>[] targets;
@@ -83,6 +93,7 @@ public class DynamicProxyAspect implements Aspect {
 
     public static class AspectWeaver implements Weaver {
 
+        // the aspect that will be applied on the interfaces
         private final Aspect aspect;
 
         public AspectWeaver(Aspect aspect) {
@@ -90,11 +101,13 @@ public class DynamicProxyAspect implements Aspect {
         }
 
         public Object weave(Object target) {
+            // all the interfaces that this aspect will be applied upon
             Class<?>[] interfaces = target.getClass().getInterfaces();
-            InvocationHandler handler = new ProxyHandler(target, aspect);
-            return Proxy.newProxyInstance(target.getClass().getClassLoader(), interfaces, handler);
+            // creates an Invocation Handler
+            ProxyHandler proxyHandler = new ProxyHandler(target, aspect);
+            // returns a proxy instance with the specified parameters
+            return Proxy.newProxyInstance(target.getClass().getClassLoader(), interfaces, proxyHandler);
         }
-
     }
 
     public static class ProxyHandler implements InvocationHandler {
@@ -107,18 +120,21 @@ public class DynamicProxyAspect implements Aspect {
             this.aspect = aspect;
         }
 
-
+        // invocation of the dynamic proxy
+        // the args parameter is only used in the case of the 'around' advice
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
+            // case of 'before' advice
             Runnable beforeAdvice = aspect.beforeAdviceFor(method);
             if (beforeAdvice != null) {
                 beforeAdvice.run();
             }
 
+            // case of 'around' advice
             Object result;
-            if (aspect.aroundAdviceFor(method) != null) {
-                Runnable aroundAdvice = aspect.aroundAdviceFor(method);
+            Runnable aroundAdvice = aspect.aroundAdviceFor(method);
+            if (aroundAdvice != null) {
                 Callable<Object> callable = () -> {
                     aroundAdvice.run();
                     return null;
@@ -128,28 +144,29 @@ public class DynamicProxyAspect implements Aspect {
                 result = method.invoke(target, args);
             }
 
+            // case of 'after' advice
             Runnable afterAdvice = aspect.afterAdviceFor(method);
             if (afterAdvice != null) {
                 afterAdvice.run();
             }
+
             return result;
         }
-
-
     }
 
+    // this Factory is not used in our implementation
+    @Deprecated
+    public static class AspectFactory implements Factory {
+        @Override
+        public Builder newBuilder() {
+            return new AspectBuilder();
+        }
 
-//    public static class AspectFactory implements Factory {
-//        @Override
-//        public Builder newBuilder() {
-//            return new AspectBuilder();
-//        }
-//
-//        @Override
-//        public Weaver newWeaver() {
-//            return new AspectWeaver(this.newBuilder().build());
-//        }
-//    }
+        @Override
+        public Weaver newWeaver() {
+            return new AspectWeaver(this.newBuilder().build());
+        }
+    }
 }
 
 
