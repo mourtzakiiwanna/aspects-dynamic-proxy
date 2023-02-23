@@ -44,9 +44,9 @@ public interface Aspect {
         Object weave(Object target);
     }
 
-//    /* Helper Factory */
-//    interface Factory {
-//        Builder newBuilder();
-//        Weaver newWeaver();
-//    }
+   /* Helper Factory */
+   interface Factory {
+       Builder newBuilder();
+       Weaver newWeaver();
+   }
 }
