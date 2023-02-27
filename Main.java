@@ -14,9 +14,14 @@ public class Main {
         SimpleMessaging normalMessage = new SimpleMessaging();
         String aspectMessage = "Aspect rocks!";
 
+        AspectImplementation.AspectFactory aspectFactory = new AspectImplementation.AspectFactory();
+
         // creates an aspect that logs a message before and after the 'greet' method is called
         // also it applies an around advice, and prints something else, instead of the method original print value
-        Aspect greetingAspect = new DynamicProxyAspect.AspectBuilder()
+        AspectImplementation.AspectBuilder greetingBuilder =
+                (AspectImplementation.AspectBuilder) aspectFactory.newBuilder();
+
+        Aspect greetingAspect = greetingBuilder
                 .withTargets(new Class<?>[]{Greeting.class})
                 .withBeforeAdviceFor(() -> System.out.println("This is a greeting...."),
                         Greeting.class.getDeclaredMethod("greet", String.class))
@@ -26,10 +31,12 @@ public class Main {
                         Greeting.class.getDeclaredMethod("greet", String.class))
                 .build();
 
-
         // creates an aspect that logs a message before and after the 'deliverMessage' method is called
         // also it applies an around advice, and prints something else, instead of the method original print value
-        Aspect messageAspect = new DynamicProxyAspect.AspectBuilder()
+        AspectImplementation.AspectBuilder messageBuilder =
+                (AspectImplementation.AspectBuilder) aspectFactory.newBuilder();
+
+        Aspect messageAspect = messageBuilder
                 .withTargets(new Class<?>[]{Messaging.class})
                 .withBeforeAdviceFor(() -> System.out.println("This is a message deliver...."),
                         Messaging.class.getDeclaredMethod("deliverMessage", String.class))
@@ -41,11 +48,15 @@ public class Main {
 
 
         // creates a weaver and uses it to weave the greeting aspect with a target object
-        DynamicProxyAspect.AspectWeaver aspectWeaverGreet = new DynamicProxyAspect.AspectWeaver(greetingAspect);
+        AspectImplementation.AspectWeaver aspectWeaverGreet =
+                (AspectImplementation.AspectWeaver) aspectFactory.newWeaver();
+        aspectWeaverGreet.setAspect(greetingAspect);
         Greeting aspectGreet = (Greeting) aspectWeaverGreet.weave(new SimpleGreeting());
 
         // creates a weaver and uses it to weave the message aspect with a target object
-        DynamicProxyAspect.AspectWeaver aspectWeaverMessage = new DynamicProxyAspect.AspectWeaver(messageAspect);
+        AspectImplementation.AspectWeaver aspectWeaverMessage =
+                (AspectImplementation.AspectWeaver) aspectFactory.newWeaver();
+        aspectWeaverMessage.setAspect(messageAspect);
         Messaging aspectMessaging = (Messaging) aspectWeaverMessage.weave(new SimpleMessaging());
 
         // calls the greet method to see the normal output of the method
