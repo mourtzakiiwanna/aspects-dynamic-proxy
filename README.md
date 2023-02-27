@@ -64,15 +64,18 @@ We define an advice to be applied before the actual execution of the method (bef
 The same is done for the 'messaging' aspect. 
 
 ```bash
-Aspect greetingAspect = new DynamicProxyAspect.AspectBuilder()
-  .withTargets(new Class<?>[]{Greeting.class})
-  .withBeforeAdviceFor(() -> System.out.println("This is a greeting...."),
-      Greeting.class.getDeclaredMethod("greet", String.class))
-  .withAfterAdviceFor(() -> System.out.println("The greeting has been done."),
-      Greeting.class.getDeclaredMethod("greet", String.class))
-  .withAroundAdviceFor(() -> System.out.println("Hello " + aspectName + "! I'm an aspect! "),
-      Greeting.class.getDeclaredMethod("greet", String.class))
-  .build();
+AspectImplementation.AspectBuilder greetingBuilder =
+    (AspectImplementation.AspectBuilder) aspectFactory.newBuilder();
+
+Aspect greetingAspect = greetingBuilder
+    .withTargets(new Class<?>[]{Greeting.class})
+    .withBeforeAdviceFor(() -> System.out.println("This is a greeting...."),
+        Greeting.class.getDeclaredMethod("greet", String.class))
+    .withAfterAdviceFor(() -> System.out.println("The greeting has been done."),
+        Greeting.class.getDeclaredMethod("greet", String.class))
+    .withAroundAdviceFor(() -> System.out.println("Hello " + aspectName + "! I'm an aspect! "),
+        Greeting.class.getDeclaredMethod("greet", String.class))
+    .build();
 ```
 
 Then, we create a weaver and use it to weave the 'greeting' aspect with a target object. </br>
