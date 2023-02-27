@@ -81,7 +81,9 @@ Aspect greetingAspect = greetingBuilder
 Then, we create a weaver and use it to weave the 'greeting' aspect with a target object. </br>
 The same is done for the 'messaging' aspect. 
 ```bash
-DynamicProxyAspect.AspectWeaver aspectWeaverGreet = new DynamicProxyAspect.AspectWeaver(greetingAspect);
+AspectImplementation.AspectWeaver aspectWeaverGreet =
+    (AspectImplementation.AspectWeaver) aspectFactory.newWeaver();
+aspectWeaverGreet.setAspect(greetingAspect);
 Greeting aspectGreet = (Greeting) aspectWeaverGreet.weave(new SimpleGreeting());
 ```
 
